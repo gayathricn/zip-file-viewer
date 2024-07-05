@@ -1,7 +1,6 @@
 const { invoke } = window.__TAURI__.tauri;
 const { open } = window.__TAURI__.dialog;
 
-// Function to list contents of a ZIP file
 async function listZipContents(zipFilePath, password = null) {
     try {
         console.log(`Requesting contents for ZIP file at path: ${zipFilePath}`);
@@ -15,7 +14,6 @@ async function listZipContents(zipFilePath, password = null) {
     }
 }
 
-// Function to handle file selection and interaction with backend
 async function handleFileSelection() {
     try {
         const selectedFile = await open({
@@ -29,38 +27,59 @@ async function handleFileSelection() {
         console.log(`Selected file path: ${selectedFile}`);
         const contents = await listZipContents(selectedFile);
 
-        const encryptedFiles = contents.filter(file => file.encrypted);
-        if (encryptedFiles.length > 0) {
-            const password = prompt('This ZIP file is encrypted. Please enter the password:');
-            if (password === null) {
-                console.log('Password prompt was canceled.');
-                return;
-            }
-            const decryptedContents = await listZipContents(selectedFile, password);
-            displayContents(decryptedContents);
-        } else {
-            displayContents(contents);
-        }
+        displayContents(contents);
 
-        await updateRecentFiles(selectedFile); // Update recent files after successfully handling the file
+        await updateRecentFiles(selectedFile);
     } catch (error) {
         console.error('Error handling file selection:', error);
     }
 }
 
-// Function to display ZIP contents in the UI
+function buildTree(paths) {
+    let root = {};
+
+    paths.forEach(path => {
+        const parts = path.split('/');
+        let current = root;
+
+        parts.forEach((part, index) => {
+            if (!current[part]) {
+                current[part] = (index === parts.length - 1) ? null : {};
+            }
+            current = current[part];
+        });
+    });
+
+    return root;
+}
+
+function displayTree(element, tree) {
+    const ul = document.createElement("ul");
+
+    for (let key in tree) {
+        const li = document.createElement("li");
+        li.textContent = key;
+
+        if (tree[key] !== null) {
+            displayTree(li, tree[key]);
+        }
+
+        ul.appendChild(li);
+    }
+
+    element.appendChild(ul);
+}
+
 function displayContents(contents) {
     const zipContentsElement = document.getElementById("zipContents");
     zipContentsElement.innerHTML = "";
 
-    contents.forEach(file => {
-        const li = document.createElement("li");
-        li.textContent = file.name;
-        zipContentsElement.appendChild(li);
-    });
+    const paths = contents.map(file => file.path);
+    const tree = buildTree(paths);
+
+    displayTree(zipContentsElement, tree);
 }
 
-// Function to get recent files from the backend
 async function getRecentFiles() {
     try {
         const recentFiles = await invoke('get_recent_files');
@@ -73,7 +92,6 @@ async function getRecentFiles() {
     }
 }
 
-// Function to display recent files in the UI
 async function displayRecentFiles() {
     const recentFiles = await getRecentFiles();
     const recentFilesElement = document.getElementById("recentFiles");
@@ -86,7 +104,6 @@ async function displayRecentFiles() {
     });
 }
 
-// Ensure DOM is fully loaded before attaching event listeners
 document.addEventListener('DOMContentLoaded', function() {
     const selectFileButton = document.getElementById('selectFileButton');
     if (selectFileButton) {
@@ -98,7 +115,6 @@ document.addEventListener('DOMContentLoaded', function() {
     displayRecentFiles();
 });
 
-// Function to update recent files by adding the selected file
 async function updateRecentFiles(selectedFile) {
     try {
         await invoke('add_recent_file', { filePath: selectedFile });

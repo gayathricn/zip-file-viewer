@@ -4,6 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZIP File Viewer</title>
+    <style>
+        ul {
+            list-style-type: none; /* Remove default bullets */
+            padding-left: 20px; /* Add some padding for indentation */
+        }
+
+        li::before {
+            content: "\2022"; /* Add custom bullet for each list item */
+            padding-right: 8px; /* Space between bullet and text */
+        }
+
+        li ul li::before {
+            content: ""; /* Remove the default bullet from nested lists */
+        }
+    </style>
 </head>
 <body>
     <h1>ZIP File Viewer</h1>
@@ -13,7 +28,7 @@
 
     <!-- Display ZIP contents -->
     <h2>ZIP Contents</h2>
-    <ul id="zipContents"></ul>
+    <div id="zipContents"></div>
 
     <!-- Display recent files -->
     <h2>Recent Files</h2>
@@ -22,5 +37,3 @@
     <script src="main.js"></script>
 </body>
 </html>
-
-
