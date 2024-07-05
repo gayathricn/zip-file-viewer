@@ -1940,6 +1940,7 @@ dependencies = [
  "devtools",
  "directories",
  "env_logger",
+ "lazy_static",
  "log",
  "serde",
  "serde_json",

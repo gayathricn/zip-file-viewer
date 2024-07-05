@@ -42,7 +42,7 @@ async function handleFileSelection() {
             displayContents(contents);
         }
 
-        updateRecentFiles();
+        await updateRecentFiles(selectedFile); // Update recent files after successfully handling the file
     } catch (error) {
         console.error('Error handling file selection:', error);
     }
@@ -98,6 +98,12 @@ document.addEventListener('DOMContentLoaded', function() {
     displayRecentFiles();
 });
 
-async function updateRecentFiles() {
-    await displayRecentFiles();
+// Function to update recent files by adding the selected file
+async function updateRecentFiles(selectedFile) {
+    try {
+        await invoke('add_recent_file', { filePath: selectedFile });
+        await displayRecentFiles();
+    } catch (error) {
+        console.error('Error updating recent files:', error);
+    }
 }
