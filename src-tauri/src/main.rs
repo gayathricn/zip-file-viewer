@@ -106,8 +106,8 @@ fn main() {
         })
         .on_window_event(|event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event.event() {
-                if let Err(e) = write_recent_files_on_exit() {
-                    eprintln!("Failed to write recent files on exit: {}", e);
+                if let Err(err) = write_recent_files_on_exit() {
+                    eprintln!("Failed to write recent files on exit: {}", err);
                 }
                 api.prevent_close();
                 std::process::exit(0);

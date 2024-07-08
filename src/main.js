@@ -4,7 +4,10 @@ const { open } = window.__TAURI__.dialog;
 async function listZipContents(zipFilePath, password = null) {
     try {
         console.log(`Requesting contents for ZIP file at path: ${zipFilePath}`);
-        const contents = await invoke('list_contents', { zipFile: zipFilePath, password: password });
+        
+        // Invoke the 'list_contents' command with additional 'user_id' parameter
+        const contents = await invoke('list_contents', { zipFile: zipFilePath, password: password, user_id: getUserId() });
+        
         console.log('Contents received from Rust:', contents);
         return contents;
     } catch (error) {
@@ -19,6 +22,7 @@ async function handleFileSelection() {
         const selectedFile = await open({
             filters: [{ name: 'ZIP Files', extensions: ['zip'] }]
         });
+        
         if (!selectedFile) {
             console.log('No file selected');
             return;
@@ -82,7 +86,9 @@ function displayContents(contents) {
 
 async function getRecentFiles() {
     try {
-        const recentFiles = await invoke('get_recent_files');
+        // Invoke the 'get_recent_files' command with 'user_id' parameter
+        const recentFiles = await invoke('get_recent_files', { user_id: getUserId() });
+        
         console.log('Recent files received from Rust:', recentFiles);
         return recentFiles;
     } catch (error) {
@@ -106,6 +112,7 @@ async function displayRecentFiles() {
 
 document.addEventListener('DOMContentLoaded', function() {
     const selectFileButton = document.getElementById('selectFileButton');
+    
     if (selectFileButton) {
         selectFileButton.addEventListener('click', handleFileSelection);
     } else {
@@ -117,9 +124,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function updateRecentFiles(selectedFile) {
     try {
-        await invoke('add_recent_file', { filePath: selectedFile });
+        // Invoke the 'add_recent_file' command with 'filePath' and 'user_id' parameters
+        await invoke('add_recent_file', { filePath: selectedFile, user_id: getUserId() });
         await displayRecentFiles();
     } catch (error) {
         console.error('Error updating recent files:', error);
     }
+}
+
+function getUserId() {
+    // Replace with your logic to retrieve a unique user identifier,
+    // such as from local storage or session data.
+    // For demonstration, let's assume a fixed user identifier.
+    return 'user123';
 }
