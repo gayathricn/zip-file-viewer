@@ -20,7 +20,7 @@ struct ZipContent {
 }
 
 lazy_static! {
-    static ref RECENT_FILES: Mutex<Vec<RecentFile>> = Mutex::new(Vec::new());
+    static ref RECENT_FILES: Mutex<Vec<RecentFile>> = Mutex::new(read_recent_files().unwrap_or_else(|_| Vec::new()));
 }
 
 #[tauri::command]
@@ -44,23 +44,23 @@ fn list_contents(zip_file: String, password: Option<String>) -> Result<Vec<ZipCo
         });
     }
 
-    add_recent_file_to_memory(&zip_file)?;
+    update_recent_files(&zip_file)?;
 
     Ok(contents)
 }
 
 #[tauri::command]
 fn get_recent_files() -> Result<Vec<RecentFile>, String> {
-    let recent_files = read_recent_files()?;
+    let recent_files = RECENT_FILES.lock().unwrap().clone();
     Ok(recent_files)
 }
 
 #[tauri::command]
 fn add_recent_file(file_path: String) -> Result<(), String> {
-    add_recent_file_to_memory(&file_path)
+    update_recent_files(&file_path)
 }
 
-fn add_recent_file_to_memory(file_path: &str) -> Result<(), String> {
+fn update_recent_files(file_path: &str) -> Result<(), String> {
     let mut recent_files = RECENT_FILES.lock().unwrap();
     recent_files.retain(|file| file.path != file_path);
 
@@ -77,29 +77,21 @@ fn add_recent_file_to_memory(file_path: &str) -> Result<(), String> {
 }
 
 fn read_recent_files() -> Result<Vec<RecentFile>, String> {
-    if cfg!(debug_assertions) {
-        Ok(RECENT_FILES.lock().unwrap().clone())
-    } else {
-        let file = File::open(RECENT_FILES_PATH).map_err(|_| "No recent files found".to_string())?;
-        let recent_files: Vec<RecentFile> = serde_json::from_reader(file).map_err(|e| format!("Failed to parse recent files: {}", e))?;
-        Ok(recent_files)
-    }
+    let file = File::open(RECENT_FILES_PATH).map_err(|_| "No recent files found".to_string())?;
+    let recent_files: Vec<RecentFile> = serde_json::from_reader(file).map_err(|e| format!("Failed to parse recent files: {}", e))?;
+    Ok(recent_files)
 }
 
-fn write_recent_files(recent_files: &[RecentFile]) -> Result<(), String> {
-    if cfg!(debug_assertions) {
-        Ok(())
-    } else {
-        let file = OpenOptions::new().create(true).write(true).truncate(true).open(RECENT_FILES_PATH)
-            .map_err(|e| format!("Failed to open recent files file: {}", e))?;
-        serde_json::to_writer(file, &recent_files).map_err(|e| format!("Failed to write recent files: {}", e))?;
-        Ok(())
-    }
+fn write_recent_files() -> Result<(), String> {
+    let recent_files = RECENT_FILES.lock().unwrap();
+    let file = OpenOptions::new().create(true).write(true).truncate(true).open(RECENT_FILES_PATH)
+        .map_err(|e| format!("Failed to open recent files file: {}", e))?;
+    serde_json::to_writer(file, &*recent_files).map_err(|e| format!("Failed to write recent files: {}", e))?;
+    Ok(())
 }
 
 fn write_recent_files_on_exit() -> Result<(), String> {
-    let recent_files = RECENT_FILES.lock().unwrap();
-    write_recent_files(&recent_files)
+    write_recent_files()
 }
 
 fn main() {
